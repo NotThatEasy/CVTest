@@ -1,7 +1,19 @@
 #pragma once
 #include "Header.h"
 
-class CapWriter {
+
+class src {
+public:
+	virtual void operator >> (Mat& object) = 0;
+};
+
+class dest {
+public:
+	virtual void operator << (Mat& object) = 0;
+};
+
+
+class CapWriter : src, dest{
 public:
 	CapWriter(std::string&& fileOutName, unsigned short code) : cap(code)
 		/*, FPS(static_cast<unsigned short>(cap.get(CV_CAP_PROP_FPS)))

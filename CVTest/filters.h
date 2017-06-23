@@ -4,6 +4,11 @@ using namespace cv;
 typedef Mat InputArr;
 typedef Mat OutputArr;
 
+class filter {
+public:
+	virtual void operator()(InputArr& input, OutputArr& output, Rect toFilter) const = 0;
+};
+
 class blur : public filter {
 public:
 	void operator()(InputArr& input, OutputArr& output, Rect toBlur) const override

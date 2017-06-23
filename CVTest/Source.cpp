@@ -1,21 +1,9 @@
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <Windows.h>
-#include <functional>
-#include <conio.h>
-#include <string>
-#include <thread>
-#include <chrono>
-#include <mutex>
-#include <condition_variable>
+#include "filters.h"
+#include "serialization.h"
+#include "CapWriter.h"
 
-#define Enter 13
-#define Escape 27
-const unsigned char menusize{ 3 };
 
-auto lError = [](std::string& what, int code) { std::cout << what << '\n';
-	Sleep(2000);
-	std::exit(code); };
+
 
 class menu
 {
@@ -75,171 +63,13 @@ protected:
 	std::function<void()> _funcs[menusize];
 };
 
-typedef unsigned short unssh;
-using namespace cv;
 
-typedef Mat InputArr;
-typedef Mat OutputArr;
+using namespace cv;
 
 std::mutex mut;
 std::condition_variable cv_;
-enum cond_v {
-	EXIT,
-	bw,
-	gblur,
-	canny,
-	filtersDone,
-	NONE
-};
+
 cond_v ccc = NONE;
-
-class filter {
-public:
-	virtual void operator()(InputArr& input, OutputArr& output, Rect toFilter) const = 0;
-};
-
-typedef std::unique_lock<std::mutex> lk;
-typedef std::lock_guard<std::mutex> lg;
-
-class blur : public filter{
-public:
-	void operator()(InputArr& input, OutputArr& output, Rect toBlur) const override
-	{
-		lk lck(mut);
-		while (true)
-		{
-			cv_.wait(lck, [] {return ccc != NONE && ccc != canny && ccc != bw && ccc != filtersDone; });
-			if(ccc == gblur)
-			{
-				Mat tmp{ input(toBlur) };
-				GaussianBlur(tmp, tmp, Size(25, 25), 0);
-				//Copying it back into its place
-				tmp.copyTo(output(toBlur));
-				ccc = canny;
-				cv_.notify_all();
-			}
-			else if (ccc == EXIT)
-				break;
-		}
-	}
-} blur_;
-class detectEdges : public filter {
-public:
-	void operator()(InputArr& input, OutputArr& output, Rect toDetect) const override
-	{
-		lk lck(mut);
-		while (true) 
-		{
-			cv_.wait(lck, [] {return ccc != NONE && ccc != bw && ccc != gblur && ccc != filtersDone; });
-			if (ccc == canny)
-			{
-				//Capturing the next part of the frame and applying Canny edge detector to it
-				Mat tmp{ input(toDetect) };
-				cvtColor(tmp, tmp, COLOR_BGR2GRAY);
-				Canny(tmp, tmp, 50, 100);
-				cvtColor(tmp, tmp, COLOR_GRAY2BGR);
-				//Copying it back onto frame
-				tmp.copyTo(output(toDetect));
-				ccc = filtersDone;
-				cv_.notify_all();
-			}
-			else if (ccc == EXIT)
-				break;
-		}
-	}
-} det;
-class BlackWhite : public filter {
-public:
-	virtual void operator()(InputArr& input, OutputArr& output, Rect toBW) const override
-	{
-		lk lck(mut);
-		while (true) {	//Capturing the part of the frame and applying B/W filter to it
-			cv_.wait(lck, [] {return ccc != NONE && ccc != gblur && ccc != canny && ccc != filtersDone; });
-			if (ccc == bw)
-			{
-				Mat tmp{ input(toBW) };
-				cvtColor(tmp, tmp, COLOR_BGR2GRAY);
-				cvtColor(tmp, tmp, COLOR_GRAY2BGR);
-				//Copying it back into its place on the frame
-				tmp.copyTo(output(toBW));
-				ccc = gblur;
-				cv_.notify_all(); 
-			}
-			else if (ccc == EXIT)
-				break;
-		}
-	}
-} BW;
-
-std::string capErrorText{ "Video input not opened! Program closing\n" };
-std::string wrtErrorText{ "Unable to open file for writing! Program will be closed\n" };
-
-class CapWriter {
-public:
-	CapWriter(std::string&& fileOutName, unsigned short code) : cap(code)
-		/*, FPS(static_cast<unsigned short>(cap.get(CV_CAP_PROP_FPS)))
-		, width(static_cast<unsigned short>(cap.get(CV_CAP_PROP_FRAME_WIDTH)))
-		, height(static_cast<unsigned short>(cap.get(CV_CAP_PROP_FRAME_HEIGHT)))*/
-	{
-		FPS = static_cast<unsigned short>(cap.get(CV_CAP_PROP_FPS));
-		width = static_cast<unsigned short>(cap.get(CV_CAP_PROP_FRAME_WIDTH));
-		height = static_cast<unsigned short>(cap.get(CV_CAP_PROP_FRAME_HEIGHT));
-		//Checking if input stream is ok
-		if (!cap.isOpened())
-			lError(capErrorText, 1);
-		//Initializing FPS, width and height with values taken from input video
-		
-		//Creating and opening an output video file with VideoWriter
-		wrt.open(std::forward<std::string>(fileOutName), -1, FPS, Size(width, height));
-
-		//Checking if output stream is ok
-		if (!wrt.isOpened())
-			lError(wrtErrorText, 2);
-	}
-	~CapWriter()
-	{
-		cap.release();
-		wrt.release();
-	}
-	void readfrom(std::string&& fileFrom)
-	{
-		cap.release();
-		cap.open(std::forward<std::string>(fileFrom));
-		if (!cap.isOpened())
-			lError(capErrorText, 1);
-	}
-	void readfrom(unsigned short&& camera)
-	{
-		cap.release();
-		cap.open(std::forward<unsigned short>(camera));
-		if (!cap.isOpened())
-			lError(capErrorText, 1);
-	}
-	void writeTo(std::string&& fileOutName)
-	{
-		wrt.release();
-		wrt.open(std::forward<std::string>(fileOutName), -1, FPS, Size(width, height));
-	}
-	Size getSize()
-	{
-		return Size(width, height);
-	}
-	void operator>> (Mat& object) 
-	{
-		cap >> object;
-	}
-	void operator<< (Mat& object)
-	{
-		wrt << object;
-	}
-	
-private:
-	unsigned short FPS;
-	unsigned short width;
-	unsigned short height;
-	VideoCapture cap;
-	VideoWriter wrt;
-};
 
 
 void Rec_View(const std::string& wndName, std::string&& fileOutName)
@@ -256,20 +86,22 @@ void Rec_View(const std::string& wndName, std::string&& fileOutName)
 	std::thread bl(blur_, std::ref(frame), std::ref(frame), Rect((d + filterW) % frame.cols, 0, filterW, frame.rows));
 	std::thread detect(det, std::ref(frame), std::ref(frame)
 		, Rect((d + filterW * 2) % frame.cols, 0, filterW * 2, frame.rows));
+	lk lck(mut);
 	while (true)
 	{
 		ccc = NONE;
 		//Load into frame
 		capwrt >> frame;
-		lk lck(mut);
+		cv_.wait(lck, [] {return ccc == NONE; });
+		ccc = bw;
+		cv_.notify_all();
 		unedited = frame.clone();
 		if (frame.empty())
 			break;
-		cv_.wait(lck, [] {return ccc == NONE; });
-		ccc = bw;
+		
 		//Checking not to bypass the edges of the screen
 		d += d + filterW * 4 + 5 >= frame.cols ? -d + 1 : 5;
-		cv_.notify_all();
+		
 		cv_.wait(lck, [] {return ccc == filtersDone; });
 		//Write the frame to the outwstream
 		capwrt << frame;
@@ -319,7 +151,6 @@ void viewOrig(const std::string& wndName, std::string&& fileOutName)
 
 int main()
 {
-	//std::thread thr();
 	auto origBind = std::bind(viewOrig, "Original video", "outOr.avi");
 	auto Rec_VBind = std::bind(Rec_View, "Edited frames", "out.avi");
 	std::function<void()> arr[] = {
