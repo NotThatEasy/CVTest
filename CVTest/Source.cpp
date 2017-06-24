@@ -66,7 +66,7 @@ protected:
 
 using namespace cv;
 
-std::mutex mut;
+std::mutex mut_;
 std::condition_variable cv_;
 
 cond_v ccc = NONE;
@@ -79,48 +79,49 @@ void Rec_View(const std::string& wndName, std::string&& fileOutName)
 	namedWindow(wndName);
 	namedWindow("Unedited");
 	//Creating a single frame object to load from/to videostreams
-	Mat frame(Size(640, 480), CV_8UC3), edited, unedited;
+	Mat /*frame(Size(640, 480), CV_8UC3),*/ edited, unedited;
+	std::shared_ptr<Mat> msh(std::make_shared<Mat>(Size(640, 480), CV_8UC3));
+	
 	unsigned short d = 0;
 	unsigned short filterW = capwrt.getSize().width / 5;
-	std::thread BW(BW, std::ref(frame), std::ref(frame), Rect(d, 0, filterW, frame.rows));
-	std::thread bl(blur_, std::ref(frame), std::ref(frame), Rect((d + filterW) % frame.cols, 0, filterW, frame.rows));
-	std::thread detect(det, std::ref(frame), std::ref(frame)
-		, Rect((d + filterW * 2) % frame.cols, 0, filterW * 2, frame.rows));
-	lk lck(mut);
+	/*BW.run(std::ref(msh), std::ref(msh), Rect(d, 0, filterW, msh->rows));
+	blur_.run(std::ref(msh), std::ref(msh), Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
+	det.run(std::ref(msh), std::ref(msh)
+		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));*/
+	std::thread BW(BW, std::ref(msh), std::ref(msh), Rect(d, 0, filterW, msh->rows));
+	std::thread bl(blur_, std::ref(msh), std::ref(msh), Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
+	std::thread detect(det, std::ref(msh), std::ref(msh)
+		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));
+	lk lck(mut_);
 	while (true)
 	{
 		ccc = NONE;
 		//Load into frame
-		capwrt >> frame;
+		capwrt >> *msh;
 		cv_.wait(lck, [] {return ccc == NONE; });
 		ccc = bw;
 		cv_.notify_all();
-		unedited = frame.clone();
-		if (frame.empty())
+		unedited = msh->clone();
+		if (msh->empty())
 			break;
 		
 		//Checking not to bypass the edges of the screen
-		d += d + filterW * 4 + 5 >= frame.cols ? -d + 1 : 5;
+		d += d + filterW * 4 + 5 >= msh->cols ? -d + 1 : 5;
 		
 		cv_.wait(lck, [] {return ccc == filtersDone; });
 		//Write the frame to the outwstream
-		capwrt << frame;
+		capwrt << *msh;
 		//Show frame
-		imshow(wndName, frame);
+		imshow(wndName, *msh);
 		imshow("Unedited", unedited);
 		if (waitKey(1) == Escape)
 		{
 			ccc = EXIT;
 			cv_.notify_all();
+			//cv_.wait(lck, [] {return ccc == EXIT; });
 			break;
 		}
 	}
-	if (BW.joinable())
-		BW.detach();
-	if (bl.joinable())
-		bl.detach();
-	if (detect.joinable())
-		detect.detach();
 	cv::destroyAllWindows();
 }
 
@@ -151,6 +152,7 @@ void viewOrig(const std::string& wndName, std::string&& fileOutName)
 
 int main()
 {
+	std::mutex forFrame;
 	auto origBind = std::bind(viewOrig, "Original video", "outOr.avi");
 	auto Rec_VBind = std::bind(Rec_View, "Edited frames", "out.avi");
 	std::function<void()> arr[] = {
