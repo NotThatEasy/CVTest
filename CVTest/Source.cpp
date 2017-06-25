@@ -81,17 +81,19 @@ void Rec_View(const std::string& wndName, std::string&& fileOutName)
 	//Creating a single frame object to load from/to videostreams
 	Mat /*frame(Size(640, 480), CV_8UC3),*/ edited, unedited;
 	std::shared_ptr<Mat> msh(std::make_shared<Mat>(Size(640, 480), CV_8UC3));
-	
+	std::shared_ptr<Mat> shared1 = msh, shared2 = msh;
 	unsigned short d = 0;
 	unsigned short filterW = capwrt.getSize().width / 5;
-	/*BW.run(std::ref(msh), std::ref(msh), Rect(d, 0, filterW, msh->rows));
-	blur_.run(std::ref(msh), std::ref(msh), Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
-	det.run(std::ref(msh), std::ref(msh)
-		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));*/
-	std::thread BW(BW, std::ref(msh), std::ref(msh), Rect(d, 0, filterW, msh->rows));
-	std::thread bl(blur_, std::ref(msh), std::ref(msh), Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
-	std::thread detect(det, std::ref(msh), std::ref(msh)
+	BlackWhite BW_(mut_, msh, msh, Rect(d, 0, filterW, msh->rows));
+	_blur blur_(mut_, shared1, shared1, Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
+	detectEdges det(mut_, shared2, shared2
 		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));
+	BW_.run();
+	blur_.run();
+	det.run();
+	/*std::thread BW(&BlackWhite::run, BW_);
+	std::thread bl(&_blur::run,blur_);
+	std::thread detect(&detectEdges::run, det);*/
 	lk lck(mut_);
 	while (true)
 	{

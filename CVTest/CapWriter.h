@@ -2,18 +2,9 @@
 #include "Header.h"
 
 
-class src {
-public:
-	virtual void operator >> (Mat& object) = 0;
-};
-
-class dest {
-public:
-	virtual void operator << (Mat& object) = 0;
-};
 
 
-class CapWriter : src, dest{
+class CapWriter : src<std::string>, dest<unsigned short>{
 public:
 	CapWriter(std::string&& fileOutName, unsigned short code) : cap(code)
 		/*, FPS(static_cast<unsigned short>(cap.get(CV_CAP_PROP_FPS)))
@@ -40,21 +31,21 @@ public:
 		cap.release();
 		wrt.release();
 	}
-	void readfrom(std::string&& fileFrom)
+	void readFrom(std::string&& fileFrom)
 	{
 		cap.release();
 		cap.open(std::forward<std::string>(fileFrom));
 		if (!cap.isOpened())
 			lError(capErrorText, 1);
 	}
-	void readfrom(unsigned short&& camera)
+	void readFrom(unsigned short& camera) override
 	{
 		cap.release();
-		cap.open(std::forward<unsigned short>(camera));
+		cap.open(camera);
 		if (!cap.isOpened())
 			lError(capErrorText, 1);
 	}
-	void writeTo(std::string&& fileOutName)
+	void writeTo(std::string& fileOutName) override
 	{
 		wrt.release();
 		wrt.open(std::forward<std::string>(fileOutName), -1, FPS, Size(width, height));

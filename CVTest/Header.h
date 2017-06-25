@@ -38,3 +38,14 @@ const unsigned char menusize{ 3 };
 
 std::string capErrorText{ "Video input not opened! Program closing\n" };
 std::string wrtErrorText{ "Unable to open file for writing! Program will be closed\n" };
+
+//Abstract data sources/destinations
+
+template<class T>
+class src {
+	virtual void writeTo(T& obj) = 0;
+};
+template<class T>
+class dest {
+	virtual void readFrom(T& obj) = 0;
+};

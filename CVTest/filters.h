@@ -4,25 +4,60 @@ using namespace cv;
 typedef std::shared_ptr<Mat> InputArr;
 typedef std::shared_ptr<Mat> OutputArr;
 
-class filter {
+std::string thrRun{ "Thread already running" };
+
+class filter : src<InputArr>, dest<OutputArr> {
 public:
-	filter() {};
-	virtual void run(InputArr& input, OutputArr& output, Rect& toFilter) = 0;
+	filter() : input(InputArr()), output(OutputArr()) {}
+	filter(InputArr& input, OutputArr& output) : input(input), output(output) {};
+	virtual void run() = 0;
+	virtual void setRectToCopyTo(Rect& rect) = 0;
+	virtual void readFrom(InputArr& obj)
+	{
+		if (flag)
+		{
+			lError(thrRun, 3);
+			return;
+		}
+		input = obj;
+	}
+	virtual void writeTo(OutputArr& obj)
+	{
+		if (flag)
+		{
+			lError(thrRun, 3);
+			return;
+		}
+		output = obj;
+	}
+	virtual void operator()(InputArr& input, OutputArr& output, Rect& toFilter) = 0;
 private:
-	virtual void operator()(InputArr& input, OutputArr& output, Rect& toFilter) const = 0;
+	InputArr& input;
+	OutputArr& output;
+	bool flag;
 };
 
-class blur : public filter {
+class _blur : public filter {
 public:
-	blur(std::mutex& mut) : mut(mut) {}
-	virtual void run(InputArr& input, OutputArr& output, Rect& toBlur) override {
+	_blur(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toBlur) 
+		: mut(mut), flag(false), input(input), output(output), toBlur(toBlur) {}
+	virtual void run() override {
 		std::thread thr((*this), input, output, toBlur);
 		//if (thr.joinable()) thr.join();
 	}
-//private:
-	void operator()(InputArr& input, OutputArr& output, Rect& toBlur) const override
+	virtual void setRectToCopyTo(Rect& rect)
+	{
+		if (flag)
+		{
+			lError(thrRun, 3);
+			return;
+		}
+		toBlur = rect;
+	}
+	void operator()(InputArr& input, OutputArr& output, Rect& toBlur) override
 	{
 		lk lck(mut);
+		flag = true;
 		while (true)
 		{
 			cv_.wait(lck, [] {return ccc != NONE && ccc != canny && ccc != bw && ccc != filtersDone; });
@@ -39,19 +74,33 @@ public:
 				break;
 		}
 	}
+private:
+	InputArr& input;
+	OutputArr& output;
+	Rect& toBlur;
+	bool flag;
 	std::mutex& mut;
-} blur_(mut_);
+};
 class detectEdges : public filter {
 public:
-	detectEdges(std::mutex& mut) : mut(mut) {}
-	virtual void run(InputArr& input, OutputArr& output, Rect& toBlur) override {
-		std::thread thr((*this), input, output, toBlur);
+	detectEdges(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toDetect) 
+		: mut(mut), flag(false), input(input), output(output), toDetect(toDetect) {}
+	virtual void run() override {
+		std::thread thr((*this), input, output, toDetect);
 		//if (thr.joinable()) thr.join();
 	}
-//private:
-	void operator()(InputArr& input, OutputArr& output, Rect& toDetect) const override
+	virtual void setRectToCopyTo(Rect& rect)
+	{
+		if (flag)
+		{
+			lError(thrRun, 3);
+			return;
+		}
+	}
+	void operator()(InputArr& input, OutputArr& output, Rect& toDetect) override
 	{
 		lk lck(mut);
+		flag = true;
 		while (true)
 		{
 			cv_.wait(lck, [] {return ccc != NONE && ccc != bw && ccc != gblur && ccc != filtersDone; });
@@ -71,19 +120,33 @@ public:
 				break;
 		}
 	}
+private:
+	InputArr& input;
+	OutputArr& output;
+	Rect& toDetect;
+	bool flag;
 	std::mutex& mut;
-} det(mut_);
+};
 class BlackWhite : public filter {
 public:
-	BlackWhite(std::mutex& mut) : mut(mut) {}
-	virtual void run(InputArr& input, OutputArr& output, Rect& toBlur) override {
-		std::thread thr((*this), input, output, toBlur);
+	BlackWhite(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toBW) 
+		: mut(mut), flag(false), input(input), output(output), toBW(toBW) {}
+	virtual void run() override {
+		std::thread thr((*this), input, output, toBW);
 		//if (thr.joinable()) thr.join();
 	}
-//private:
-	virtual void operator()(InputArr& input, OutputArr& output, Rect& toBW) const override
+	virtual void setRectToCopyTo(Rect& rect)
+	{
+		if (flag)
+		{
+			lError(thrRun, 3);
+			return;
+		}
+	}
+	virtual void operator()(InputArr& input, OutputArr& output, Rect& toBW) override
 	{
 		lk lck(mut);
+		flag = true;
 		while (true) {	//Capturing the part of the frame and applying B/W filter to it
 			cv_.wait(lck, [] {return ccc != NONE && ccc != gblur && ccc != canny && ccc != filtersDone; });
 			if (ccc == bw)
@@ -100,5 +163,10 @@ public:
 				break;
 		}
 	}
+private:
+	InputArr& input;
+	OutputArr& output;
+	Rect& toBW;
+	bool flag;
 	std::mutex& mut;
-} BW(mut_);
+};
