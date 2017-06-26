@@ -71,61 +71,58 @@ std::condition_variable cv_;
 
 cond_v ccc = NONE;
 
-
-void Rec_View(const std::string& wndName, std::string&& fileOutName)
-{
-	CapWriter capwrt(std::forward<std::string>(fileOutName), 0);
-	//Creating an OpenCV window
-	namedWindow(wndName);
-	namedWindow("Unedited");
-	//Creating a single frame object to load from/to videostreams
-	Mat /*frame(Size(640, 480), CV_8UC3),*/ edited, unedited;
-	std::shared_ptr<Mat> msh(std::make_shared<Mat>(Size(640, 480), CV_8UC3));
-	std::shared_ptr<Mat> shared1 = msh, shared2 = msh;
-	unsigned short d = 0;
-	unsigned short filterW = capwrt.getSize().width / 5;
-	BlackWhite BW_(mut_, msh, msh, Rect(d, 0, filterW, msh->rows));
-	_blur blur_(mut_, shared1, shared1, Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
-	detectEdges det(mut_, shared2, shared2
-		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));
-	BW_.run();
-	blur_.run();
-	det.run();
-	/*std::thread BW(&BlackWhite::run, BW_);
-	std::thread bl(&_blur::run,blur_);
-	std::thread detect(&detectEdges::run, det);*/
-	lk lck(mut_);
-	while (true)
-	{
-		ccc = NONE;
-		//Load into frame
-		capwrt >> *msh;
-		cv_.wait(lck, [] {return ccc == NONE; });
-		ccc = bw;
-		cv_.notify_all();
-		unedited = msh->clone();
-		if (msh->empty())
-			break;
-		
-		//Checking not to bypass the edges of the screen
-		d += d + filterW * 4 + 5 >= msh->cols ? -d + 1 : 5;
-		
-		cv_.wait(lck, [] {return ccc == filtersDone; });
-		//Write the frame to the outwstream
-		capwrt << *msh;
-		//Show frame
-		imshow(wndName, *msh);
-		imshow("Unedited", unedited);
-		if (waitKey(1) == Escape)
-		{
-			ccc = EXIT;
-			cv_.notify_all();
-			//cv_.wait(lck, [] {return ccc == EXIT; });
-			break;
-		}
-	}
-	cv::destroyAllWindows();
-}
+//
+//void Rec_View(const std::string& wndName, std::string&& fileOutName)
+//{
+//	CapWriter capwrt(std::forward<std::string>(fileOutName), 0);
+//	//Creating an OpenCV window
+//	namedWindow(wndName);
+//	namedWindow("Unedited");
+//	//Creating a single frame object to load from/to videostreams
+//	Mat edited, unedited;
+//	std::shared_ptr<Mat> msh(std::make_shared<Mat>(Size(640, 480), CV_8UC3));
+//	unsigned short d = 0;
+//	unsigned short filterW = capwrt.frameSize().width / 5;
+//	BlackWhite BW_(mut_, msh, msh, Rect(d, 0, filterW, msh->rows));
+//	_blur blur_(mut_, msh, msh, Rect((d + filterW) % msh->cols, 0, filterW, msh->rows));
+//	detectEdges det(mut_, msh, msh
+//		, Rect((d + filterW * 2) % msh->cols, 0, filterW * 2, msh->rows));
+//	BW_.run();
+//	blur_.run();
+//	det.run();
+//	
+//	lk lck(mut_);
+//	while (true)
+//	{
+//		ccc = NONE;
+//		//Load into frame
+//		capwrt >> *msh;
+//		cv_.wait(lck, [] {return ccc == NONE; });
+//		ccc = bw;
+//		cv_.notify_all();
+//		unedited = msh->clone();
+//		if (msh->empty())
+//			break;
+//		
+//		//Checking not to bypass the edges of the screen
+//		d += d + filterW * 4 + 5 >= msh->cols ? -d + 1 : 5;
+//		
+//		cv_.wait(lck, [] {return ccc == filtersDone; });
+//		//Write the frame to the outwstream
+//		capwrt << *msh;
+//		//Show frame
+//		imshow(wndName, *msh);
+//		imshow("Unedited", unedited);
+//		if (waitKey(1) == Escape)
+//		{
+//			ccc = EXIT;
+//			cv_.notify_all();
+//			//cv_.wait(lck, [] {return ccc == EXIT; });
+//			break;
+//		}
+//	}
+//	cv::destroyAllWindows();
+//}
 
 void viewOrig(const std::string& wndName, std::string&& fileOutName)
 {
@@ -154,9 +151,8 @@ void viewOrig(const std::string& wndName, std::string&& fileOutName)
 
 int main()
 {
-	std::mutex forFrame;
 	auto origBind = std::bind(viewOrig, "Original video", "outOr.avi");
-	auto Rec_VBind = std::bind(Rec_View, "Edited frames", "out.avi");
+	/*auto Rec_VBind = std::bind(Rec_View, "Edited frames", "out.avi");
 	std::function<void()> arr[] = {
 		  origBind
 		, Rec_VBind
@@ -165,5 +161,5 @@ int main()
 	std::string array[] = { "View original video","View both original and filtered video","Exit the application" };
 	menu my(array, menusize, arr);
 	my.run();
-	return 0;
+	*/return 0;
 }

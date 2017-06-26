@@ -6,7 +6,7 @@ typedef std::shared_ptr<Mat> OutputArr;
 
 std::string thrRun{ "Thread already running" };
 
-class filter : src<InputArr>, dest<OutputArr> {
+class filter /*: src<InputArr>, dest<OutputArr>*/ {
 public:
 	filter() : input(InputArr()), output(OutputArr()) {}
 	filter(InputArr& input, OutputArr& output) : input(input), output(output) {};
@@ -37,7 +37,7 @@ private:
 	bool flag;
 };
 
-class _blur : public filter {
+class _blur : filter {
 public:
 	_blur(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toBlur) 
 		: mut(mut), flag(false), input(input), output(output), toBlur(toBlur) {}
@@ -81,8 +81,7 @@ private:
 	bool flag;
 	std::mutex& mut;
 };
-class detectEdges : public filter {
-public:
+class detectEdges : filter {
 	detectEdges(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toDetect) 
 		: mut(mut), flag(false), input(input), output(output), toDetect(toDetect) {}
 	virtual void run() override {
@@ -127,7 +126,7 @@ private:
 	bool flag;
 	std::mutex& mut;
 };
-class BlackWhite : public filter {
+class BlackWhite : filter {
 public:
 	BlackWhite(std::mutex& mut, InputArr& input, OutputArr& output, Rect& toBW) 
 		: mut(mut), flag(false), input(input), output(output), toBW(toBW) {}

@@ -41,11 +41,11 @@ std::string wrtErrorText{ "Unable to open file for writing! Program will be clos
 
 //Abstract data sources/destinations
 
-template<class T>
-class src {
-	virtual void writeTo(T& obj) = 0;
-};
-template<class T>
-class dest {
-	virtual void readFrom(T& obj) = 0;
-};
+//template<class T>
+//class src {
+//	virtual void writeTo(T& obj) = 0;
+//};
+//template<class T>
+//class dest {
+//	virtual void readFrom(T& obj) = 0;
+//};

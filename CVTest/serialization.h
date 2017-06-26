@@ -12,7 +12,6 @@ private:
 	std::vector<uchar> buf;
 };
 
-//void serializer<Mat>::encode();
 
 class matSerializer :  serializer<Mat> {
 public:
@@ -37,7 +36,6 @@ public:
 private:
 	std::vector<uchar>& vec;
 };
-//void deserializer<Mat>::decode(Mat& whereTo);
 class matDeserializer : deserializer<Mat> 
 {
 public:
@@ -49,4 +47,3 @@ public:
 private:
 	std::vector<uchar>& vec;
 };
-
