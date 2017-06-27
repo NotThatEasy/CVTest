@@ -1,10 +1,10 @@
-#include "filters.h"
+#include "Header.h"
 #include <memory>
 #include <list>
 
-auto lError = [](std::string& what, int code) { std::cout << what << '\n';
-Sleep(2000);
-std::exit(code); };
+//auto lError = [](std::string& what, int code) { std::cout << what << '\n';
+//Sleep(2000);
+//std::exit(code); };
 
 
 
