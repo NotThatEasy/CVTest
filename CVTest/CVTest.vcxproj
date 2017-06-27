@@ -115,10 +115,7 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CapWriter.h" />
-    <ClInclude Include="filters.h" />
     <ClInclude Include="Header.h" />
-    <ClInclude Include="serialization.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
