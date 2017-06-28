@@ -29,3 +29,10 @@ const unsigned char menusize{ 3 };
 std::string capErrorText{ "Video input not opened! Program closing\n" };
 std::string wrtErrorText{ "Unable to open file for writing! Program will be closed\n" };
 
+enum tasks {
+	_EXIT,
+	BW,
+	blur,
+	canny,
+	framing
+};

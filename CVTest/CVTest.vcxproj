@@ -115,7 +115,16 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseFilter.h" />
+    <ClInclude Include="baseProcessing.h" />
+    <ClInclude Include="BW.h" />
+    <ClInclude Include="detect.h" />
+    <ClInclude Include="gblur.h" />
     <ClInclude Include="Header.h" />
+    <ClInclude Include="menu.h" />
+    <ClInclude Include="SrcDestBases.h" />
+    <ClInclude Include="threadWrapper.h" />
+    <ClInclude Include="videoFramer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
