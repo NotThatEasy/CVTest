@@ -3,7 +3,9 @@
 
 class detect : public filter {
 public:
-	//detect(std::mutex& mut) : lck(mut) {}
+	//Mutex detection constructor
+	detect(std::mutex& mut) : lck(mut) {}
+	//Mutex & capturer constructor
 	detect(std::mutex& mut, cv::VideoCapture& cap) : lck(mut), cap(cap)
 	{
 		FPS = static_cast<unsigned short>(cap.get(CV_CAP_PROP_FPS));
@@ -11,12 +13,15 @@ public:
 		height = static_cast<unsigned short>(cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		frame = cv::Mat::Mat(cv::Size(width, height), CV_8UC3);
 	}
+	//Stopper not implemented
 	void stop() override {}
+	//Run the filtering
 	void operator()()
 	{
 		run();
 	}
 protected:
+	//Applying filters
 	void run()
 	{
 		if (!cap.isOpened())
@@ -24,6 +29,7 @@ protected:
 			lError(std::string("Canny filter failed to acquire resource"), 11);
 			return;
 		}
+		//creating named window for Canny output
 		cv::namedWindow("Canny");
 		cv::Mat tmp{ cv::Size(width, height), CV_8UC3 };
 		while (true)
@@ -35,16 +41,13 @@ protected:
 				return;
 			}
 			tmp = frame.clone();
+			//Applying filters to the frame
 			cvtColor(tmp, tmp, cv::COLOR_BGR2GRAY);
 			Canny(tmp, tmp, 50, 100);
 			cvtColor(tmp, tmp, cv::COLOR_GRAY2BGR);
-			//Copying it back into its place
-			//
-			//
-			//tmp.copyTo(tmp);
-			//
-			//
+			//Outputing the frame into window
 			cv::imshow("Canny", tmp);
+			//Awaiting for Escape key to be pressed
 			if (cv::waitKey(1) == 27)
 				break;
 		}

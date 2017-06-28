@@ -1,5 +1,6 @@
 #pragma once
 #include "Header.h"
+
 /*Class wrapping the threads, destructor calls join for the threads
 in case of them still running*/
 class threadWrapper {
@@ -16,7 +17,7 @@ public:
 	{}
 	template<class Callable>
 	threadWrapper(std::function<void()>* func, Callable object)
-		: m_t(new std::thread(args...))
+		: m_t(new std::thread(func, object))
 	{}
 	void operator=(threadWrapper&& t)
 	{
@@ -40,6 +41,7 @@ public:
 		if (!m_t->joinable())
 			lError(std::string("Unable to join!\n"), 6);
 		m_t->join();
+		m_t.release();
 	}
 	//Checks if thread is already running
 	bool isThreading()
@@ -48,11 +50,7 @@ public:
 	}
 	//Destructor of the thread wrapper
 	~threadWrapper()
-	{
-		if (m_t->joinable())
-			m_t->join();
-		m_t.release();
-	}
+	{}
 protected:
 	//Smart pointer, storing thread
 	std::unique_ptr<std::thread> m_t;

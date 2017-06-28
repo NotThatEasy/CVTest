@@ -9,10 +9,7 @@
 #include <chrono>
 #include <mutex>
 #include <condition_variable>
-
-extern std::mutex mut_;
-extern std::condition_variable cv_;
-
+//Error handling
 auto lError = [](std::string& what, int code) { std::cout << what << '\n';
 Sleep(2000);
 std::exit(code); };

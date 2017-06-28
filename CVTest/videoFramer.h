@@ -3,16 +3,20 @@
 #include "threadWrapper.h"
 #include "SrcDestBases.h"
 
+//Class outputing the webcam input to the screen
 class videoFramer : public src<cv::Mat> {
 public:
+	//Mutex constructor
 	videoFramer(std::mutex& mut) : cap(), lck{ mut, std::defer_lock }
 		, callback(nullptr)
 	{
 		cap.open((0));
 	}
+	//Mutex & capturer constructor
 	videoFramer(cv::VideoCapture&& cap, std::mutex& mut) : cap(std::move(cap)), callback(nullptr)
 		, lck{ mut, std::defer_lock }
 	{}
+	//Mutex, capturer and callback-editor constructor
 	videoFramer(cv::VideoCapture&& cap, std::function<void(cv::Mat)> callback, std::mutex& mut)
 		: callback(std::make_unique<std::function<void(cv::Mat)>>(callback))
 		, lck{ mut, std::defer_lock }
@@ -58,7 +62,6 @@ public:
 			cap >> frm;
 			if (callback)
 			{
-
 				cbcked = frm.clone();
 				callback->operator()(cbcked);
 			}
@@ -69,8 +72,11 @@ public:
 		//lck.unlock();
 	}
 private:
+	//capture variable
 	cv::VideoCapture cap;
+	//Possible callback for editing filters to the frames
 	std::unique_ptr<std::function<void(cv::Mat)>> callback;
+	//mutex locker
 	std::unique_lock<std::mutex> lck;
 	std::condition_variable m_cv;
 	threadWrapper thr;

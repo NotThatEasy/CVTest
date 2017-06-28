@@ -3,10 +3,14 @@
 #include "SrcDestBases.h"
 #include "threadWrapper.h"
 
+//
 class filter : public src<cv::Mat> {
 public:
+	//Filter default constructor
 	filter() {}
+	//Filter mutex constructor
 	filter(std::mutex& mut) : thr(nullptr), lck(mut, std::defer_lock) {}
+	//Filter mutex & callback constructor
 	filter(std::mutex& mut, std::function<void()>&& lambda) : thr(nullptr), lck(mut, std::defer_lock)
 		, storedFunc(std::make_unique<std::function<void()>>(std::forward<std::function<void()>>(lambda)))
 	{ }
@@ -14,6 +18,7 @@ public:
 	{
 		//thr = std::make_unique<threadWrapper>(std::forward<std::function<void()>>(lambda));
 	}
+	//Calling stored func if any available
 	void operator()()
 	{
 		if (storedFunc == nullptr)
