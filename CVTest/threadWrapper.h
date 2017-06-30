@@ -25,7 +25,7 @@ public:
 	}
 	std::unique_ptr<std::thread> ret()
 	{
-
+		return nullptr;
 	}
 	std::thread&& operator*()
 	{
@@ -41,7 +41,6 @@ public:
 		if (!m_t->joinable())
 			lError(std::string("Unable to join!\n"), 6);
 		m_t->join();
-		m_t.release();
 	}
 	//Checks if thread is already running
 	bool isThreading()
@@ -50,7 +49,9 @@ public:
 	}
 	//Destructor of the thread wrapper
 	~threadWrapper()
-	{}
+	{
+		m_t.release();
+	}
 protected:
 	//Smart pointer, storing thread
 	std::unique_ptr<std::thread> m_t;

@@ -9,6 +9,10 @@
 #include <chrono>
 #include <mutex>
 #include <condition_variable>
+
+typedef std::function<void()> _fn;
+
+
 //Error handling
 auto lError = [](std::string& what, int code) { std::cout << what << '\n';
 Sleep(2000);

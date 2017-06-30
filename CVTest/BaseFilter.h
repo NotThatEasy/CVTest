@@ -3,37 +3,54 @@
 #include "SrcDestBases.h"
 #include "threadWrapper.h"
 
-//
+
 class filter : public src<cv::Mat> {
 public:
 	//Filter default constructor
-	filter() {}
-	//Filter mutex constructor
-	filter(std::mutex& mut) : thr(nullptr), lck(mut, std::defer_lock) {}
+	filter() : thr(nullptr) {}
 	//Filter mutex & callback constructor
-	filter(std::mutex& mut, std::function<void()>&& lambda) : thr(nullptr), lck(mut, std::defer_lock)
-		, storedFunc(std::make_unique<std::function<void()>>(std::forward<std::function<void()>>(lambda)))
+	filter(std::function<void()>&& lambda) : thr(nullptr), storedFunc(std::make_unique<std::function<void()>>
+		(std::forward<std::function<void()>>(lambda)))
 	{ }
-	void operator()(std::function<void()>&& lambda)
+	virtual void start()
 	{
-		//thr = std::make_unique<threadWrapper>(std::forward<std::function<void()>>(lambda));
+		thr(_fn([this] {this->operator()(); }));
 	}
-	//Calling stored func if any available
-	void operator()()
+	virtual void stop() override
 	{
-		if (storedFunc == nullptr)
+		if (thr.isThreading())
+			thr.join();
+	}
+	//Running filtering
+	virtual void operator()()
+	{
+		//creating window
+		cv::namedWindow("BW");
+		//Temporary matrix
+		cv::Mat tmp{ frame };
+		while (true)
 		{
-			lError(std::string("No lambda captured"), 15);
-			return;
+			this->run(tmp);
+			//Awaiting for Escape being pressed
+			if (cv::waitKey(1) == 27)
+				break;
 		}
-		thr.operator=(std::move(threadWrapper(*storedFunc)));
 	}
+	virtual void run(cv::Mat& frm) 
+	{
+		if(storedFunc)
+			storedFunc->operator()(frm);
+	}
+	
+	//Calling stored func if any available
 protected:
-	std::unique_lock<std::mutex> lck;
-	threadWrapper thr;
-	std::unique_ptr<std::function<void()>> storedFunc;
+	std::unique_ptr<std::function<void(cv::Mat&)>> storedFunc;
+	
 	cv::Mat frame;
+	threadWrapper thr;
 	unsigned short FPS;
 	unsigned short width;
 	unsigned short height;
+private:
+	
 };
